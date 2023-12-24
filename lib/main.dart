@@ -70,15 +70,42 @@ class PageExtends extends State<Page> {
     });
   }
 
+  var search_type;
+  var search_query;
   var name;
   var author;
-  var startDate;
-  var endDate;
+  DateTime StartDate = DateTime.now();
+  DateTime EndDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     fetchData();
+  }
+  Future<void> _selectDateForStart(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: StartDate,
+        firstDate: DateTime(2015, 8),
+        lastDate: DateTime(2101));
+    if (picked != null && picked != StartDate) {
+      setState(() {
+        StartDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectDateForEnd(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: EndDate,
+        firstDate: DateTime(2015, 8),
+        lastDate: DateTime(2101));
+    if (picked != null && picked != EndDate) {
+      setState(() {
+        EndDate = picked;
+      });
+    }
   }
 
   @override
@@ -105,9 +132,10 @@ class PageExtends extends State<Page> {
                   const Text("Insert Data", textAlign: TextAlign.center, style: TextStyle(fontSize: 20),),
                   TextField(decoration: const InputDecoration(hintText: "Name"), onChanged: (value) => name = value,),
                   TextField(decoration: const InputDecoration(hintText: "Author"), onChanged: (value) => author = value,),
-                  TextField(decoration: const InputDecoration(hintText: "Start Date YYYY-MM-DD"), onChanged: (value) => startDate = value, ),
-                  TextField(decoration: const InputDecoration(hintText: "End Date YYYY-MM-DD"), onChanged: (value) => endDate = value, ),
-                  Row(children: [Container(margin: const EdgeInsets.all(10),child: ElevatedButton(onPressed: () {addData(context);}, child: const Text("Add Data"))), Container(margin: const EdgeInsets.all(10),child: ElevatedButton(onPressed: () {Phoenix.rebirth(context);}, child: const Text("Reload App")))])
+                  Row(children: [Text("Start Date: ${StartDate.toLocal()}".split(' ')[0], textAlign: TextAlign.center), TextButton(onPressed: () => _selectDateForStart(context), child: Text("${StartDate.toLocal()}".split(' ')[0]))]),
+                  Row(children: [Text("End Date: ${EndDate.toLocal()}".split(' ')[0], textAlign: TextAlign.center), TextButton(onPressed: () => _selectDateForEnd(context), child: Text("${EndDate.toLocal()}".split(' ')[0]))]),
+                  Row(children: [Container(margin: const EdgeInsets.all(10), child: ElevatedButton(onPressed: () {addData(context);}, child: const Text("Add Data"))), Container(margin: const EdgeInsets.all(10),child: ElevatedButton(onPressed: () {Phoenix.rebirth(context);}, child: const Text("Reload App")))]),
+                  // Row(children: [TextField(decoration: const InputDecoration(hintText: "Search: Search Type, Search Query"), onChanged: (value) {search_query = value.split(",")[1]; search_type = value.split(",")[0];},), Container(margin: const EdgeInsets.all(10), child: ElevatedButton(onPressed: () {getData();}, child: const Text("Get Data")))],)
                 ]
               )
               ),
@@ -137,7 +165,8 @@ class PageExtends extends State<Page> {
                 
                 )).toList()
                 ))
-              )
+              ),
+              ElevatedButton(child: const Text("DELETE ALL DATA"), style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red), foregroundColor: MaterialStateProperty.all(Colors.white)), onPressed: () {showDeleteDialog(context);},)
               
               
             ]
@@ -185,8 +214,8 @@ class PageExtends extends State<Page> {
       id: 0,
       name: name,
       author: author,
-      start_date: startDate,
-      end_date: endDate
+      start_date: StartDate.toLocal().toString().split(' ')[0],
+      end_date: EndDate.toLocal().toString().split(' ')[0]
     );
     if (data.name == "" || data.author == "" || data.start_date == "" || data.end_date == "") {
       return;
@@ -195,6 +224,31 @@ class PageExtends extends State<Page> {
     await insertData(database, 1, data);
     print("Added data: $data");
     database.close();
+  }
+
+  void deleteData() async {
+    Database database = await getConnection();
+    await database.execute("DELETE FROM books");
+  }
+
+  void showDeleteDialog(context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title:  const Text("Are you sure?"),
+          content: const Text("Are you sure you want to delete all data?"),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(child: const Text("OK"), onPressed: () {deleteData(); Navigator.of(context).pop();},)
+          ],
+        );
+
+      }
+    );
   }
 
 }
